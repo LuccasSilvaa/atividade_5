@@ -1,0 +1,10 @@
+.git
+.gitignore
+__pycache__
+*.pyc
+.vscode
+.idea
+README.md
+energy_economics_limpo.csv
+dados_dashboard.json
+graficos/

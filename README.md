@@ -7,6 +7,7 @@
   <img src="https://img.shields.io/badge/Seaborn-444876?style=for-the-badge" alt="Seaborn">
   <img src="https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white" alt="HTML5">
   <img src="https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black" alt="JavaScript">
+  <img src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker">
 </p>
 
 Dashboard interativo para análise de indicadores energéticos, ambientais e econômicos de **129 países** no período de **1995 a 2020**. O projeto inclui pipeline completo de tratamento de dados, geração de gráficos estáticos e interativos, e um dashboard web com filtros dinâmicos.
@@ -20,6 +21,7 @@ Dashboard interativo para análise de indicadores energéticos, ambientais e eco
 - [Estrutura do Projeto](#-estrutura-do-projeto)
 - [Tecnologias](#-tecnologias)
 - [Como Executar](#-como-executar)
+- [Docker](#-docker)
 - [Pipeline de Dados](#-pipeline-de-dados)
 - [Gráficos Gerados](#-gráficos-gerados)
 - [Dashboard Interativo](#-dashboard-interativo)
@@ -87,6 +89,11 @@ Atividade-5/
 ├── dados_dashboard.json            # Dados em JSON (consumido pelo dashboard)
 ├── dashboard.html                  # Dashboard interativo (abrir no navegador)
 │
+├── Dockerfile                      # Container multi-stage (Python + Nginx)
+├── docker-compose.yml              # Orquestração do container
+├── nginx.conf                      # Configuração do servidor web
+├── .dockerignore                   # Arquivos ignorados no build
+│
 └── README.md
 ```
 
@@ -104,6 +111,8 @@ Atividade-5/
 | **Plotly** | Gráficos interativos (mapa, scatter, treemap) |
 | **HTML/CSS/JS** | Dashboard web interativo |
 | **Plotly.js** | Renderização de gráficos no dashboard |
+| **Docker** | Containerização da aplicação |
+| **Nginx** | Servidor web para o dashboard |
 
 ---
 
@@ -149,6 +158,36 @@ Abra o arquivo `dashboard.html` em um navegador web.
 > python -m http.server 8000
 > ```
 > Depois acesse: [http://localhost:8000/dashboard.html](http://localhost:8000/dashboard.html)
+
+---
+
+## 🐳 Docker
+
+A forma mais simples de executar o projeto é via Docker:
+
+### Com Docker Compose (recomendado)
+
+```bash
+docker compose up -d
+```
+
+> Acesse: [http://localhost:8080](http://localhost:8080)
+
+### Com Docker puro
+
+```bash
+# Build da imagem
+docker build -t energy-dashboard .
+
+# Executar o container
+docker run -d -p 8080:80 --name energy-dashboard energy-dashboard
+```
+
+O Dockerfile utiliza **multi-stage build**:
+1. **Stage 1 (Python)** — Executa todo o pipeline de dados (limpeza, gráficos, JSON)
+2. **Stage 2 (Nginx)** — Serve o dashboard com compressão gzip e cache otimizado
+
+> A imagem final é baseada em `nginx:alpine`, resultando em uma imagem leve (~30MB + dados).
 
 ---
 
