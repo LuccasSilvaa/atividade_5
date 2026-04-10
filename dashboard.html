@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Economia de Energia</title>
+    <meta name="description" content="Dashboard interativo de economia de energia com filtros dinâmicos para análise de emissões, energia renovável e indicadores econômicos.">
+    <script src="https://cdn.plot.ly/plotly-2.35.0.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-secondary: #111827;
+            --bg-card: #1a2235;
+            --bg-card-hover: #1f2a40;
+            --bg-input: #0d1321;
+            --accent-1: #3b82f6;
+            --accent-2: #8b5cf6;
+            --accent-3: #06b6d4;
+            --accent-4: #10b981;
+            --accent-5: #f59e0b;
+            --accent-6: #ef4444;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border: #1e293b;
+            --border-focus: #3b82f6;
+            --gradient-1: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            --gradient-2: linear-gradient(135deg, #06b6d4, #10b981);
+            --gradient-3: linear-gradient(135deg, #f59e0b, #ef4444);
+            --gradient-4: linear-gradient(135deg, #8b5cf6, #ec4899);
+            --shadow: 0 4px 24px rgba(0,0,0,0.3);
+            --shadow-lg: 0 8px 40px rgba(0,0,0,0.4);
+            --radius: 16px;
+            --radius-sm: 10px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            background: linear-gradient(180deg, rgba(17,24,39,0.95), rgba(10,14,26,0.98));
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 20px 32px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo-icon {
+            width: 44px;
+            height: 44px;
+            background: var(--gradient-1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            box-shadow: 0 4px 16px rgba(59,130,246,0.3);
+        }
+
+        .header h1 {
+            font-size: 22px;
+            font-weight: 700;
+            background: var(--gradient-1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        .header-subtitle {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 400;
+            margin-top: 2px;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .data-badge {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 6px 14px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .data-badge .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-4);
+            animation: pulse-dot 2s infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        /* ===== LAYOUT ===== */
+        .main-layout {
+            display: flex;
+            min-height: calc(100vh - 80px);
+        }
+
+        /* ===== SIDEBAR ===== */
+        .sidebar {
+            width: 320px;
+            min-width: 320px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            padding: 24px 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .filter-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px;
+            transition: border-color 0.3s;
+        }
+
+        .filter-section:hover {
+            border-color: rgba(59,130,246,0.3);
+        }
+
+        .filter-section h3 {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .filter-section h3 .icon {
+            font-size: 14px;
+        }
+
+        /* Select & Input */
+        .filter-select, .filter-input {
+            width: 100%;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            padding: 10px 14px;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            transition: all 0.3s;
+            outline: none;
+        }
+
+        .filter-select:focus, .filter-input:focus {
+            border-color: var(--accent-1);
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+        }
+
+        .filter-select option {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .multi-select-container {
+            position: relative;
+        }
+
+        .selected-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 10px;
+            min-height: 28px;
+        }
+
+        .tag {
+            background: rgba(59,130,246,0.15);
+            border: 1px solid rgba(59,130,246,0.3);
+            color: var(--accent-1);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .tag .remove {
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+            font-size: 14px;
+            line-height: 1;
+        }
+
+        .tag .remove:hover { opacity: 1; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* Range slider */
+        .range-display {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .range-value {
+            background: rgba(59,130,246,0.1);
+            border: 1px solid rgba(59,130,246,0.2);
+            color: var(--accent-1);
+            padding: 4px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            min-width: 55px;
+            text-align: center;
+        }
+
+        .range-separator {
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--bg-input);
+            outline: none;
+            margin: 8px 0;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--gradient-1);
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(59,130,246,0.4);
+            transition: transform 0.2s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        /* Buttons */
+        .btn-apply {
+            width: 100%;
+            padding: 12px;
+            background: var(--gradient-1);
+            border: none;
+            border-radius: var(--radius-sm);
+            color: white;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            letter-spacing: 0.3px;
+            box-shadow: 0 4px 16px rgba(59,130,246,0.3);
+        }
+
+        .btn-apply:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(59,130,246,0.4);
+        }
+
+        .btn-apply:active {
+            transform: translateY(0);
+        }
+
+        .btn-reset {
+            width: 100%;
+            padding: 10px;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 8px;
+        }
+
+        .btn-reset:hover {
+            border-color: var(--accent-6);
+            color: var(--accent-6);
+            background: rgba(239,68,68,0.05);
+        }
+
+        /* ===== MAIN CONTENT ===== */
+        .content {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* KPI Cards */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+
+        .kpi-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+
+        .kpi-card:hover {
+            border-color: rgba(59,130,246,0.3);
+            transform: translateY(-3px);
+            box-shadow: var(--shadow);
+        }
+
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+        }
+
+        .kpi-card:nth-child(1)::before { background: var(--gradient-1); }
+        .kpi-card:nth-child(2)::before { background: var(--gradient-2); }
+        .kpi-card:nth-child(3)::before { background: var(--gradient-3); }
+        .kpi-card:nth-child(4)::before { background: var(--gradient-4); }
+
+        .kpi-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .kpi-value {
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -1px;
+            line-height: 1.1;
+        }
+
+        .kpi-card:nth-child(1) .kpi-value { color: var(--accent-1); }
+        .kpi-card:nth-child(2) .kpi-value { color: var(--accent-4); }
+        .kpi-card:nth-child(3) .kpi-value { color: var(--accent-5); }
+        .kpi-card:nth-child(4) .kpi-value { color: var(--accent-2); }
+
+        .kpi-detail {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 6px;
+        }
+
+        /* Chart containers */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .chart-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            transition: all 0.3s;
+        }
+
+        .chart-card:hover {
+            border-color: rgba(59,130,246,0.2);
+        }
+
+        .chart-card.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .chart-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .chart-subtitle {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+        }
+
+        /* Table */
+        .data-table-wrapper {
+            max-height: 400px;
+            overflow-y: auto;
+            border-radius: var(--radius-sm);
+        }
+
+        .data-table-wrapper::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .data-table-wrapper::-webkit-scrollbar-track {
+            background: var(--bg-input);
+        }
+
+        .data-table-wrapper::-webkit-scrollbar-thumb {
+            background: var(--text-muted);
+            border-radius: 3px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        thead th {
+            background: var(--bg-input);
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 10px;
+            padding: 10px 12px;
+            text-align: left;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        thead th:hover {
+            color: var(--accent-1);
+        }
+
+        tbody tr {
+            border-bottom: 1px solid rgba(30,41,59,0.5);
+            transition: background 0.2s;
+        }
+
+        tbody tr:hover {
+            background: rgba(59,130,246,0.05);
+        }
+
+        tbody td {
+            padding: 9px 12px;
+            color: var(--text-secondary);
+        }
+
+        tbody td:first-child {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        /* Loading */
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: var(--bg-primary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+            transition: opacity 0.5s;
+        }
+
+        .loading-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent-1);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            margin-top: 16px;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        /* Search input */
+        .search-box {
+            position: relative;
+        }
+
+        .search-box input {
+            padding-left: 36px;
+        }
+
+        .search-box::before {
+            content: '🔍';
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 13px;
+            z-index: 1;
+        }
+
+        /* Country list */
+        .country-list {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 8px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--bg-input);
+        }
+
+        .country-list::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .country-list::-webkit-scrollbar-thumb {
+            background: var(--text-muted);
+            border-radius: 2px;
+        }
+
+        .country-item {
+            padding: 8px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+        }
+
+        .country-item:hover {
+            background: rgba(59,130,246,0.08);
+            color: var(--text-primary);
+        }
+
+        .country-item.selected {
+            background: rgba(59,130,246,0.12);
+            color: var(--accent-1);
+        }
+
+        .country-item .check {
+            width: 16px;
+            height: 16px;
+            border: 1.5px solid var(--border);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .country-item.selected .check {
+            background: var(--accent-1);
+            border-color: var(--accent-1);
+            color: white;
+        }
+
+        .filter-count {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
+
+        /* Metric selector */
+        .metric-btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .metric-btn {
+            padding: 6px 12px;
+            font-size: 11px;
+            font-weight: 500;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .metric-btn:hover {
+            border-color: var(--accent-1);
+            color: var(--accent-1);
+        }
+
+        .metric-btn.active {
+            background: rgba(59,130,246,0.15);
+            border-color: var(--accent-1);
+            color: var(--accent-1);
+        }
+
+        /* Responsive */
+        @media (max-width: 1400px) {
+            .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 1100px) {
+            .charts-grid { grid-template-columns: 1fr; }
+            .sidebar { width: 280px; min-width: 280px; }
+        }
+
+        @media (max-width: 800px) {
+            .main-layout { flex-direction: column; }
+            .sidebar { width: 100%; min-width: 100%; max-height: 400px; }
+            .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <div class="loading-text">Carregando dashboard...</div>
+    </div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <div class="logo-icon">⚡</div>
+            <div>
+                <h1>Energy Economics Dashboard</h1>
+                <div class="header-subtitle">Analise interativa de indicadores energeticos e ambientais</div>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="data-badge">
+                <span class="dot"></span>
+                <span id="headerRecordCount">Carregando...</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Layout -->
+    <div class="main-layout">
+        <!-- Sidebar Filters -->
+        <aside class="sidebar">
+            <!-- Country Filter -->
+            <div class="filter-section">
+                <h3><span class="icon">🌍</span> Paises</h3>
+                <div class="selected-tags" id="selectedTags"></div>
+                <div class="search-box">
+                    <input type="text" class="filter-input" id="countrySearch" placeholder="Buscar pais..." autocomplete="off">
+                </div>
+                <div class="country-list" id="countryList"></div>
+                <div class="filter-count" id="countryCount"></div>
+            </div>
+
+            <!-- Year Range -->
+            <div class="filter-section">
+                <h3><span class="icon">📅</span> Periodo</h3>
+                <div class="range-display">
+                    <span class="range-value" id="yearMinDisplay">1995</span>
+                    <span class="range-separator">ate</span>
+                    <span class="range-value" id="yearMaxDisplay">2020</span>
+                </div>
+                <input type="range" id="yearMin" min="1995" max="2020" value="1995" step="1">
+                <input type="range" id="yearMax" min="1995" max="2020" value="2020" step="1">
+            </div>
+
+            <!-- Metric Y-Axis -->
+            <div class="filter-section">
+                <h3><span class="icon">📊</span> Metrica Principal</h3>
+                <div class="metric-btn-group" id="metricSelector">
+                    <button class="metric-btn active" data-metric="co2_emissions_metric_tonnes_per_capita">CO2 per Capita</button>
+                    <button class="metric-btn" data-metric="renewable_energy_consumption_pct_final_energy_use">Energia Renovavel %</button>
+                    <button class="metric-btn" data-metric="ecological_footprint_index">Pegada Ecologica</button>
+                    <button class="metric-btn" data-metric="real_gdp_constant_2015_usd">PIB Real</button>
+                    <button class="metric-btn" data-metric="greenhouse_gas_emissions_metric_tonnes_per_capita">GEE per Capita</button>
+                    <button class="metric-btn" data-metric="forest_area_pct_land_area">Area Florestal %</button>
+                    <button class="metric-btn" data-metric="urban_population_pct_total_population">Pop. Urbana %</button>
+                    <button class="metric-btn" data-metric="adaptive_capacity_index">Cap. Adaptativa</button>
+                </div>
+            </div>
+
+            <!-- CO2 Range -->
+            <div class="filter-section">
+                <h3><span class="icon">🏭</span> Filtro de CO2 (ton/capita)</h3>
+                <div class="range-display">
+                    <span class="range-value" id="co2MinDisplay">0</span>
+                    <span class="range-separator">ate</span>
+                    <span class="range-value" id="co2MaxDisplay">50</span>
+                </div>
+                <input type="range" id="co2Min" min="0" max="50" value="0" step="0.5">
+                <input type="range" id="co2Max" min="0" max="50" value="50" step="0.5">
+            </div>
+
+            <!-- Actions -->
+            <div>
+                <button class="btn-apply" id="btnApply" onclick="applyFilters()">Aplicar Filtros</button>
+                <button class="btn-reset" id="btnReset" onclick="resetFilters()">Limpar Filtros</button>
+            </div>
+        </aside>
+
+        <!-- Content -->
+        <main class="content">
+            <!-- KPI Cards -->
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <div class="kpi-label">Paises Selecionados</div>
+                    <div class="kpi-value" id="kpiCountries">--</div>
+                    <div class="kpi-detail" id="kpiCountriesDetail">de 129 paises</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Media Energia Renovavel</div>
+                    <div class="kpi-value" id="kpiRenewable">--</div>
+                    <div class="kpi-detail">% do consumo final</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Media CO2 per Capita</div>
+                    <div class="kpi-value" id="kpiCO2">--</div>
+                    <div class="kpi-detail">toneladas metricas</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Registros Filtrados</div>
+                    <div class="kpi-value" id="kpiRecords">--</div>
+                    <div class="kpi-detail" id="kpiRecordsDetail">de 3.354 total</div>
+                </div>
+            </div>
+
+            <!-- Charts Row 1 -->
+            <div class="charts-grid">
+                <div class="chart-card full-width">
+                    <div class="chart-title">Evolucao Temporal</div>
+                    <div class="chart-subtitle">Media da metrica selecionada ao longo dos anos</div>
+                    <div id="chartTimeline" style="height: 340px;"></div>
+                </div>
+            </div>
+
+            <!-- Charts Row 2 -->
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <div class="chart-title">Ranking de Paises</div>
+                    <div class="chart-subtitle">Top 15 - Ultimo ano do periodo</div>
+                    <div id="chartRanking" style="height: 420px;"></div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-title">CO2 vs Energia Renovavel</div>
+                    <div class="chart-subtitle">Correlacao no ultimo ano selecionado</div>
+                    <div id="chartScatter" style="height: 420px;"></div>
+                </div>
+            </div>
+
+            <!-- Charts Row 3 -->
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <div class="chart-title">Distribuicao por Ano</div>
+                    <div class="chart-subtitle">Box plot da metrica selecionada</div>
+                    <div id="chartBox" style="height: 380px;"></div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-title">Composicao Energetica</div>
+                    <div class="chart-subtitle">Renovavel vs Nao-Renovavel (ultimo ano)</div>
+                    <div id="chartPie" style="height: 380px;"></div>
+                </div>
+            </div>
+
+            <!-- Data Table -->
+            <div class="chart-card full-width">
+                <div class="chart-title">Tabela de Dados</div>
+                <div class="chart-subtitle" id="tableSubtitle">Dados filtrados ordenados por ano</div>
+                <div class="data-table-wrapper" id="tableWrapper"></div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+    // ===== STATE =====
+    let allData = [];
+    let filteredData = [];
+    let selectedCountries = [];
+    let selectedMetric = 'co2_emissions_metric_tonnes_per_capita';
+
+    const METRIC_LABELS = {
+        'co2_emissions_metric_tonnes_per_capita': 'CO2 per Capita (ton)',
+        'renewable_energy_consumption_pct_final_energy_use': 'Energia Renovavel (%)',
+        'ecological_footprint_index': 'Pegada Ecologica',
+        'real_gdp_constant_2015_usd': 'PIB Real (USD 2015)',
+        'greenhouse_gas_emissions_metric_tonnes_per_capita': 'GEE per Capita (ton)',
+        'forest_area_pct_land_area': 'Area Florestal (%)',
+        'urban_population_pct_total_population': 'Populacao Urbana (%)',
+        'adaptive_capacity_index': 'Capacidade Adaptativa'
+    };
+
+    const PLOTLY_LAYOUT = {
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        font: { family: 'Inter', color: '#94a3b8', size: 12 },
+        margin: { l: 50, r: 20, t: 10, b: 40 },
+        xaxis: { gridcolor: 'rgba(30,41,59,0.6)', zerolinecolor: 'rgba(30,41,59,0.8)' },
+        yaxis: { gridcolor: 'rgba(30,41,59,0.6)', zerolinecolor: 'rgba(30,41,59,0.8)' },
+        hoverlabel: { bgcolor: '#1a2235', bordercolor: '#3b82f6', font: { family: 'Inter', size: 13 } },
+        modebar: { bgcolor: 'transparent', color: '#64748b', activecolor: '#3b82f6' }
+    };
+
+    const COLORS = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#ec4899',
+                     '#84cc16','#f97316','#6366f1','#14b8a6','#e11d48','#a855f7','#0ea5e9','#65a30d'];
+
+    // ===== LOAD DATA =====
+    async function loadData() {
+        try {
+            const resp = await fetch('dados_dashboard.json');
+            allData = await resp.json();
+            initDashboard();
+        } catch (e) {
+            console.error('Erro ao carregar dados:', e);
+            document.getElementById('loadingOverlay').innerHTML =
+                '<div style="color:#ef4444;font-size:16px;">Erro ao carregar dados. Verifique se dados_dashboard.json esta no mesmo diretorio.</div>';
+        }
+    }
+
+    // ===== INIT =====
+    function initDashboard() {
+        populateCountryList();
+        setupEventListeners();
+        applyFilters();
+        document.getElementById('loadingOverlay').classList.add('hidden');
+    }
+
+    function populateCountryList() {
+        const countries = [...new Set(allData.map(d => d.country_name))].sort();
+        const list = document.getElementById('countryList');
+        list.innerHTML = countries.map(c =>
+            `<div class="country-item" data-country="${c}" onclick="toggleCountry('${c.replace(/'/g, "\\'")}')">
+                <span class="check">✓</span>
+                <span>${c}</span>
+            </div>`
+        ).join('');
+        document.getElementById('countryCount').textContent = `${countries.length} paises disponiveis`;
+    }
+
+    function setupEventListeners() {
+        // Country search
+        document.getElementById('countrySearch').addEventListener('input', function() {
+            const q = this.value.toLowerCase();
+            document.querySelectorAll('.country-item').forEach(el => {
+                el.style.display = el.dataset.country.toLowerCase().includes(q) ? '' : 'none';
+            });
+        });
+
+        // Year range
+        document.getElementById('yearMin').addEventListener('input', function() {
+            const max = parseInt(document.getElementById('yearMax').value);
+            if (parseInt(this.value) > max) this.value = max;
+            document.getElementById('yearMinDisplay').textContent = this.value;
+        });
+        document.getElementById('yearMax').addEventListener('input', function() {
+            const min = parseInt(document.getElementById('yearMin').value);
+            if (parseInt(this.value) < min) this.value = min;
+            document.getElementById('yearMaxDisplay').textContent = this.value;
+        });
+
+        // CO2 range
+        document.getElementById('co2Min').addEventListener('input', function() {
+            document.getElementById('co2MinDisplay').textContent = this.value;
+        });
+        document.getElementById('co2Max').addEventListener('input', function() {
+            document.getElementById('co2MaxDisplay').textContent = this.value;
+        });
+
+        // Metric buttons
+        document.querySelectorAll('.metric-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.metric-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                selectedMetric = this.dataset.metric;
+                applyFilters();
+            });
+        });
+    }
+
+    // ===== COUNTRY SELECTION =====
+    function toggleCountry(country) {
+        const idx = selectedCountries.indexOf(country);
+        if (idx > -1) {
+            selectedCountries.splice(idx, 1);
+        } else {
+            selectedCountries.push(country);
+        }
+        updateCountryUI();
+    }
+
+    function removeCountry(country) {
+        selectedCountries = selectedCountries.filter(c => c !== country);
+        updateCountryUI();
+        applyFilters();
+    }
+
+    function updateCountryUI() {
+        // Tags
+        const tagsEl = document.getElementById('selectedTags');
+        tagsEl.innerHTML = selectedCountries.map(c =>
+            `<span class="tag">${c}<span class="remove" onclick="removeCountry('${c.replace(/'/g, "\\'")}')">×</span></span>`
+        ).join('');
+
+        // List
+        document.querySelectorAll('.country-item').forEach(el => {
+            el.classList.toggle('selected', selectedCountries.includes(el.dataset.country));
+        });
+    }
+
+    // ===== FILTER =====
+    function applyFilters() {
+        const yearMin = parseInt(document.getElementById('yearMin').value);
+        const yearMax = parseInt(document.getElementById('yearMax').value);
+        const co2Min = parseFloat(document.getElementById('co2Min').value);
+        const co2Max = parseFloat(document.getElementById('co2Max').value);
+
+        filteredData = allData.filter(d => {
+            if (d.observation_year < yearMin || d.observation_year > yearMax) return false;
+            if (d.co2_emissions_metric_tonnes_per_capita < co2Min || d.co2_emissions_metric_tonnes_per_capita > co2Max) return false;
+            if (selectedCountries.length > 0 && !selectedCountries.includes(d.country_name)) return false;
+            return true;
+        });
+
+        updateKPIs();
+        updateCharts();
+        updateTable();
+
+        document.getElementById('headerRecordCount').textContent =
+            `${filteredData.length.toLocaleString('pt-BR')} registros filtrados`;
+    }
+
+    function resetFilters() {
+        selectedCountries = [];
+        document.getElementById('yearMin').value = 1995;
+        document.getElementById('yearMax').value = 2020;
+        document.getElementById('yearMinDisplay').textContent = '1995';
+        document.getElementById('yearMaxDisplay').textContent = '2020';
+        document.getElementById('co2Min').value = 0;
+        document.getElementById('co2Max').value = 50;
+        document.getElementById('co2MinDisplay').textContent = '0';
+        document.getElementById('co2MaxDisplay').textContent = '50';
+        document.getElementById('countrySearch').value = '';
+        document.querySelectorAll('.country-item').forEach(el => el.style.display = '');
+        updateCountryUI();
+        applyFilters();
+    }
+
+    // ===== KPIs =====
+    function updateKPIs() {
+        const countries = [...new Set(filteredData.map(d => d.country_name))];
+        const avgRenewable = filteredData.reduce((s, d) => s + d.renewable_energy_consumption_pct_final_energy_use, 0) / filteredData.length;
+        const avgCO2 = filteredData.reduce((s, d) => s + d.co2_emissions_metric_tonnes_per_capita, 0) / filteredData.length;
+
+        document.getElementById('kpiCountries').textContent = countries.length;
+        document.getElementById('kpiCountriesDetail').textContent = `de 129 paises`;
+        document.getElementById('kpiRenewable').textContent = avgRenewable.toFixed(1) + '%';
+        document.getElementById('kpiCO2').textContent = avgCO2.toFixed(2);
+        document.getElementById('kpiRecords').textContent = filteredData.length.toLocaleString('pt-BR');
+        document.getElementById('kpiRecordsDetail').textContent = `de ${allData.length.toLocaleString('pt-BR')} total`;
+    }
+
+    // ===== CHARTS =====
+    function updateCharts() {
+        updateTimelineChart();
+        updateRankingChart();
+        updateScatterChart();
+        updateBoxChart();
+        updatePieChart();
+    }
+
+    function updateTimelineChart() {
+        const metricLabel = METRIC_LABELS[selectedMetric];
+        const hasCountryFilter = selectedCountries.length > 0 && selectedCountries.length <= 10;
+
+        let traces = [];
+
+        if (hasCountryFilter) {
+            selectedCountries.forEach((country, i) => {
+                const cData = filteredData.filter(d => d.country_name === country);
+                const years = [...new Set(cData.map(d => d.observation_year))].sort();
+                const values = years.map(y => {
+                    const row = cData.find(d => d.observation_year === y);
+                    return row ? row[selectedMetric] : null;
+                });
+                traces.push({
+                    x: years, y: values,
+                    type: 'scatter', mode: 'lines+markers',
+                    name: country,
+                    line: { color: COLORS[i % COLORS.length], width: 3 },
+                    marker: { size: 6 }
+                });
+            });
+        } else {
+            const grouped = {};
+            filteredData.forEach(d => {
+                if (!grouped[d.observation_year]) grouped[d.observation_year] = [];
+                grouped[d.observation_year].push(d[selectedMetric]);
+            });
+
+            const years = Object.keys(grouped).map(Number).sort();
+            const means = years.map(y => grouped[y].reduce((a, b) => a + b, 0) / grouped[y].length);
+
+            traces.push({
+                x: years, y: means,
+                type: 'scatter', mode: 'lines+markers',
+                name: 'Media',
+                line: { color: '#3b82f6', width: 3, shape: 'spline' },
+                marker: { size: 7, color: '#3b82f6' },
+                fill: 'tozeroy',
+                fillcolor: 'rgba(59,130,246,0.08)'
+            });
+        }
+
+        Plotly.react('chartTimeline', traces, {
+            ...PLOTLY_LAYOUT,
+            yaxis: { ...PLOTLY_LAYOUT.yaxis, title: metricLabel },
+            xaxis: { ...PLOTLY_LAYOUT.xaxis, title: 'Ano', dtick: 1 },
+            showlegend: hasCountryFilter,
+            legend: { orientation: 'h', y: -0.2, font: { size: 11 } }
+        }, { responsive: true, displayModeBar: true });
+    }
+
+    function updateRankingChart() {
+        const metricLabel = METRIC_LABELS[selectedMetric];
+        const maxYear = Math.max(...filteredData.map(d => d.observation_year));
+        const lastYearData = filteredData.filter(d => d.observation_year === maxYear);
+
+        const countryAvg = {};
+        lastYearData.forEach(d => {
+            countryAvg[d.country_name] = d[selectedMetric];
+        });
+
+        const sorted = Object.entries(countryAvg).sort((a, b) => b[1] - a[1]).slice(0, 15);
+        const countries = sorted.map(s => s[0]).reverse();
+        const values = sorted.map(s => s[1]).reverse();
+
+        const colors = values.map((v, i) => {
+            const t = i / (values.length - 1);
+            const r = Math.round(59 + t * (239 - 59));
+            const g = Math.round(130 + t * (68 - 130));
+            const b = Math.round(246 + t * (68 - 246));
+            return `rgb(${r},${g},${b})`;
+        });
+
+        Plotly.react('chartRanking', [{
+            y: countries, x: values,
+            type: 'bar', orientation: 'h',
+            marker: { color: colors, cornerradius: 4 },
+            text: values.map(v => v >= 1e9 ? (v/1e9).toFixed(1) + 'B' : v >= 1e6 ? (v/1e6).toFixed(1) + 'M' : v.toFixed(2)),
+            textposition: 'outside',
+            textfont: { size: 11, color: '#94a3b8' },
+            hovertemplate: '%{y}: %{x:.2f}<extra></extra>'
+        }], {
+            ...PLOTLY_LAYOUT,
+            xaxis: { ...PLOTLY_LAYOUT.xaxis, title: metricLabel },
+            margin: { l: 140, r: 60, t: 10, b: 40 }
+        }, { responsive: true });
+    }
+
+    function updateScatterChart() {
+        const maxYear = Math.max(...filteredData.map(d => d.observation_year));
+        const data = filteredData.filter(d => d.observation_year === maxYear);
+
+        Plotly.react('chartScatter', [{
+            x: data.map(d => d.renewable_energy_consumption_pct_final_energy_use),
+            y: data.map(d => d.co2_emissions_metric_tonnes_per_capita),
+            text: data.map(d => d.country_name),
+            mode: 'markers',
+            type: 'scatter',
+            marker: {
+                size: data.map(d => Math.max(5, Math.sqrt(d.total_population / 1e6) * 2.5)),
+                color: data.map(d => d.ecological_footprint_index),
+                colorscale: 'Viridis',
+                colorbar: { title: 'Pegada Ecol.', thickness: 12, len: 0.6 },
+                opacity: 0.8,
+                line: { color: 'rgba(255,255,255,0.2)', width: 1 }
+            },
+            hovertemplate: '<b>%{text}</b><br>Renovavel: %{x:.1f}%<br>CO2: %{y:.2f} ton<extra></extra>'
+        }], {
+            ...PLOTLY_LAYOUT,
+            xaxis: { ...PLOTLY_LAYOUT.xaxis, title: 'Energia Renovavel (%)' },
+            yaxis: { ...PLOTLY_LAYOUT.yaxis, title: 'CO2 per Capita (ton)' },
+            margin: { l: 50, r: 80, t: 10, b: 40 }
+        }, { responsive: true });
+    }
+
+    function updateBoxChart() {
+        const metricLabel = METRIC_LABELS[selectedMetric];
+        const years = [...new Set(filteredData.map(d => d.observation_year))].sort();
+
+        // Show at most 10 years to avoid clutter
+        const step = Math.max(1, Math.floor(years.length / 10));
+        const selectedYears = years.filter((_, i) => i % step === 0 || i === years.length - 1);
+
+        const traces = selectedYears.map((year, i) => ({
+            y: filteredData.filter(d => d.observation_year === year).map(d => d[selectedMetric]),
+            type: 'box',
+            name: year.toString(),
+            marker: { color: COLORS[i % COLORS.length], opacity: 0.7 },
+            line: { color: COLORS[i % COLORS.length] },
+            boxmean: true
+        }));
+
+        Plotly.react('chartBox', traces, {
+            ...PLOTLY_LAYOUT,
+            yaxis: { ...PLOTLY_LAYOUT.yaxis, title: metricLabel },
+            showlegend: false,
+            margin: { l: 60, r: 20, t: 10, b: 40 }
+        }, { responsive: true });
+    }
+
+    function updatePieChart() {
+        const maxYear = Math.max(...filteredData.map(d => d.observation_year));
+        const data = filteredData.filter(d => d.observation_year === maxYear);
+
+        const avgRenewable = data.reduce((s, d) => s + d.renewable_energy_consumption_pct_final_energy_use, 0) / data.length;
+        const avgNonRenewable = 100 - avgRenewable;
+
+        Plotly.react('chartPie', [{
+            values: [avgRenewable, avgNonRenewable],
+            labels: ['Renovavel', 'Nao-Renovavel'],
+            type: 'pie',
+            hole: 0.55,
+            marker: {
+                colors: ['#10b981', '#64748b'],
+                line: { color: '#1a2235', width: 3 }
+            },
+            textinfo: 'label+percent',
+            textposition: 'outside',
+            textfont: { size: 13, color: '#94a3b8' },
+            hovertemplate: '%{label}: %{value:.1f}%<extra></extra>',
+            pull: [0.03, 0]
+        }], {
+            ...PLOTLY_LAYOUT,
+            showlegend: false,
+            margin: { l: 20, r: 20, t: 10, b: 10 },
+            annotations: [{
+                text: `<b>${avgRenewable.toFixed(1)}%</b><br>Renovavel`,
+                showarrow: false,
+                font: { size: 16, color: '#10b981', family: 'Inter' }
+            }]
+        }, { responsive: true });
+    }
+
+    // ===== TABLE =====
+    function updateTable() {
+        const maxRows = 200;
+        const sorted = [...filteredData].sort((a, b) => b.observation_year - a.observation_year || a.country_name.localeCompare(b.country_name));
+        const display = sorted.slice(0, maxRows);
+
+        document.getElementById('tableSubtitle').textContent =
+            `Exibindo ${display.length} de ${filteredData.length} registros filtrados`;
+
+        const html = `
+        <table>
+            <thead>
+                <tr>
+                    <th>Pais</th>
+                    <th>Ano</th>
+                    <th>CO2 (ton/cap)</th>
+                    <th>Renovavel %</th>
+                    <th>PIB (USD)</th>
+                    <th>Floresta %</th>
+                    <th>Pop. Urbana %</th>
+                    <th>Pegada Ecol.</th>
+                    <th>GEE (ton/cap)</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${display.map(d => `
+                <tr>
+                    <td>${d.country_name}</td>
+                    <td>${d.observation_year}</td>
+                    <td>${d.co2_emissions_metric_tonnes_per_capita.toFixed(2)}</td>
+                    <td>${d.renewable_energy_consumption_pct_final_energy_use.toFixed(1)}</td>
+                    <td>${formatNum(d.real_gdp_constant_2015_usd)}</td>
+                    <td>${d.forest_area_pct_land_area.toFixed(1)}</td>
+                    <td>${d.urban_population_pct_total_population.toFixed(1)}</td>
+                    <td>${d.ecological_footprint_index.toFixed(2)}</td>
+                    <td>${d.greenhouse_gas_emissions_metric_tonnes_per_capita.toFixed(2)}</td>
+                </tr>`).join('')}
+            </tbody>
+        </table>`;
+
+        document.getElementById('tableWrapper').innerHTML = html;
+    }
+
+    function formatNum(n) {
+        if (n >= 1e12) return (n/1e12).toFixed(1) + 'T';
+        if (n >= 1e9) return (n/1e9).toFixed(1) + 'B';
+        if (n >= 1e6) return (n/1e6).toFixed(1) + 'M';
+        return n.toLocaleString('pt-BR', { maximumFractionDigits: 0 });
+    }
+
+    // ===== START =====
+    loadData();
+    </script>
+</body>
+</html>
