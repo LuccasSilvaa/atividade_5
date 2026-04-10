@@ -20,9 +20,16 @@ RUN python limpeza_dados.py \
     && python gerar_dashboard.py
 
 # ============================================================
-# Stage 2: Servir Dashboard (Nginx)
+# Stage 2: Servir Dashboard (Nginx + Cloudflared)
 # ============================================================
 FROM nginx:alpine
+
+# Instalar cloudflared
+RUN apk add --no-cache curl \
+    && ARCH=$(uname -m) \
+    && if [ "$ARCH" = "x86_64" ]; then ARCH="amd64"; elif [ "$ARCH" = "aarch64" ]; then ARCH="arm64"; fi \
+    && curl -Lo /usr/local/bin/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-${ARCH} \
+    && chmod +x /usr/local/bin/cloudflared
 
 # Copiar configuracao customizada do Nginx
 COPY nginx.conf /etc/nginx/conf.d/default.conf
@@ -32,6 +39,10 @@ COPY dashboard.html /usr/share/nginx/html/index.html
 COPY --from=builder /app/dados_dashboard.json /usr/share/nginx/html/
 COPY --from=builder /app/graficos/ /usr/share/nginx/html/graficos/
 
+# Copiar entrypoint
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 EXPOSE 80
 
-CMD ["nginx", "-g", "daemon off;"]
+ENTRYPOINT ["/entrypoint.sh"]
