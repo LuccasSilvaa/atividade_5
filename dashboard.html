@@ -882,7 +882,8 @@
             <!-- Upload CSV -->
             <div class="filter-section">
                 <h3><span class="icon">📤</span> Enviar CSV</h3>
-                <input type="text" class="filter-input" id="uploadUrl" placeholder="URL de destino (ex: https://api.exemplo.com/upload)" autocomplete="off" style="margin-bottom: 10px;">
+                <input type="text" class="filter-input" id="uploadUrl" placeholder="URL (ex: http://localhost:8000/process-file)" autocomplete="off" style="margin-bottom: 10px;">
+                <input type="password" class="filter-input" id="uploadApiKey" placeholder="X-API-Key" autocomplete="off" style="margin-bottom: 10px;">
                 <div class="upload-zone" id="uploadZone">
                     <div class="upload-icon">📄</div>
                     <div class="upload-text">Arraste um <strong>.csv</strong> aqui ou <strong>clique</strong></div>
@@ -1471,8 +1472,13 @@
             const formData = new FormData();
             formData.append('file', selectedFile);
 
+            const headers = {};
+            const apiKey = document.getElementById('uploadApiKey').value.trim();
+            if (apiKey) headers['X-API-Key'] = apiKey;
+
             const resp = await fetch(url, {
                 method: 'POST',
+                headers: headers,
                 body: formData
             });
 
