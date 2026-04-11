@@ -660,6 +660,124 @@
             color: var(--accent-1);
         }
 
+        /* Upload CSV */
+        .upload-zone {
+            border: 2px dashed var(--border);
+            border-radius: var(--radius-sm);
+            padding: 20px 14px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 12px;
+            position: relative;
+        }
+
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: var(--accent-1);
+            background: rgba(59,130,246,0.05);
+        }
+
+        .upload-zone .upload-icon {
+            font-size: 28px;
+            margin-bottom: 6px;
+        }
+
+        .upload-zone .upload-text {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .upload-zone .upload-text strong {
+            color: var(--accent-1);
+        }
+
+        .upload-file-name {
+            font-size: 11px;
+            color: var(--accent-4);
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .upload-file-name .remove-file {
+            cursor: pointer;
+            color: var(--accent-6);
+            font-size: 14px;
+        }
+
+        .btn-upload {
+            width: 100%;
+            padding: 10px;
+            background: var(--gradient-2);
+            border: none;
+            border-radius: var(--radius-sm);
+            color: white;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            letter-spacing: 0.3px;
+            box-shadow: 0 4px 16px rgba(16,185,129,0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-upload:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(16,185,129,0.35);
+        }
+
+        .btn-upload:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .upload-status {
+            margin-top: 10px;
+            font-size: 11px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            display: none;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .upload-status.success {
+            display: flex;
+            background: rgba(16,185,129,0.1);
+            border: 1px solid rgba(16,185,129,0.3);
+            color: var(--accent-4);
+        }
+
+        .upload-status.error {
+            display: flex;
+            background: rgba(239,68,68,0.1);
+            border: 1px solid rgba(239,68,68,0.3);
+            color: var(--accent-6);
+        }
+
+        .upload-status.loading {
+            display: flex;
+            background: rgba(59,130,246,0.1);
+            border: 1px solid rgba(59,130,246,0.3);
+            color: var(--accent-1);
+        }
+
+        .spinner-sm {
+            width: 14px; height: 14px;
+            border: 2px solid var(--border);
+            border-top-color: var(--accent-1);
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+
         /* Responsive */
         @media (max-width: 1400px) {
             .kpi-grid { grid-template-columns: repeat(2, 1fr); }
@@ -759,6 +877,22 @@
             <div>
                 <button class="btn-apply" id="btnApply" onclick="applyFilters()">Aplicar Filtros</button>
                 <button class="btn-reset" id="btnReset" onclick="resetFilters()">Limpar Filtros</button>
+            </div>
+
+            <!-- Upload CSV -->
+            <div class="filter-section">
+                <h3><span class="icon">📤</span> Enviar CSV</h3>
+                <input type="text" class="filter-input" id="uploadUrl" placeholder="URL de destino (ex: https://api.exemplo.com/upload)" autocomplete="off" style="margin-bottom: 10px;">
+                <div class="upload-zone" id="uploadZone">
+                    <div class="upload-icon">📄</div>
+                    <div class="upload-text">Arraste um <strong>.csv</strong> aqui ou <strong>clique</strong></div>
+                    <input type="file" id="csvFileInput" accept=".csv" style="display:none;">
+                    <div class="upload-file-name" id="uploadFileName" style="display:none;"></div>
+                </div>
+                <button class="btn-upload" id="btnUpload" onclick="uploadCSV()" disabled>
+                    <span>📤</span> Enviar CSV
+                </button>
+                <div class="upload-status" id="uploadStatus"></div>
             </div>
         </aside>
 
@@ -1252,6 +1386,107 @@
         if (n >= 1e9) return (n/1e9).toFixed(1) + 'B';
         if (n >= 1e6) return (n/1e6).toFixed(1) + 'M';
         return n.toLocaleString('pt-BR', { maximumFractionDigits: 0 });
+    }
+
+    // ===== UPLOAD CSV =====
+    let selectedFile = null;
+
+    const uploadZone = document.getElementById('uploadZone');
+    const csvFileInput = document.getElementById('csvFileInput');
+    const uploadFileName = document.getElementById('uploadFileName');
+    const btnUpload = document.getElementById('btnUpload');
+    const uploadUrl = document.getElementById('uploadUrl');
+
+    uploadZone.addEventListener('click', () => csvFileInput.click());
+
+    uploadZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadZone.classList.add('dragover');
+    });
+
+    uploadZone.addEventListener('dragleave', () => {
+        uploadZone.classList.remove('dragover');
+    });
+
+    uploadZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadZone.classList.remove('dragover');
+        const file = e.dataTransfer.files[0];
+        if (file && file.name.endsWith('.csv')) {
+            handleFileSelect(file);
+        } else {
+            showUploadStatus('error', '❌ Apenas arquivos .csv sao aceitos');
+        }
+    });
+
+    csvFileInput.addEventListener('change', (e) => {
+        if (e.target.files[0]) handleFileSelect(e.target.files[0]);
+    });
+
+    function handleFileSelect(file) {
+        selectedFile = file;
+        uploadFileName.style.display = 'flex';
+        uploadFileName.innerHTML = `📎 ${file.name} (${(file.size/1024).toFixed(1)} KB) <span class="remove-file" onclick="removeFile(event)">✕</span>`;
+        checkUploadReady();
+        hideUploadStatus();
+    }
+
+    function removeFile(e) {
+        e.stopPropagation();
+        selectedFile = null;
+        csvFileInput.value = '';
+        uploadFileName.style.display = 'none';
+        checkUploadReady();
+    }
+
+    uploadUrl.addEventListener('input', checkUploadReady);
+
+    function checkUploadReady() {
+        btnUpload.disabled = !(selectedFile && uploadUrl.value.trim());
+    }
+
+    function showUploadStatus(type, msg) {
+        const el = document.getElementById('uploadStatus');
+        el.className = 'upload-status ' + type;
+        if (type === 'loading') {
+            el.innerHTML = `<div class="spinner-sm"></div> ${msg}`;
+        } else {
+            el.innerHTML = msg;
+        }
+    }
+
+    function hideUploadStatus() {
+        document.getElementById('uploadStatus').className = 'upload-status';
+        document.getElementById('uploadStatus').style.display = 'none';
+    }
+
+    async function uploadCSV() {
+        const url = uploadUrl.value.trim();
+        if (!selectedFile || !url) return;
+
+        btnUpload.disabled = true;
+        showUploadStatus('loading', 'Enviando arquivo...');
+
+        try {
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+
+            const resp = await fetch(url, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (resp.ok) {
+                showUploadStatus('success', `✅ Enviado com sucesso! (${resp.status})`);
+                removeFile(new Event('click'));
+            } else {
+                showUploadStatus('error', `❌ Erro ${resp.status}: ${resp.statusText}`);
+            }
+        } catch (err) {
+            showUploadStatus('error', `❌ Falha na conexao: ${err.message}`);
+        }
+
+        checkUploadReady();
     }
 
     // ===== START =====
